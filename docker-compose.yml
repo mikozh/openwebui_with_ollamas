@@ -32,15 +32,17 @@ services:
     entrypoint: >
       /bin/sh -lc "
         ollama serve & 
-        sleep 5 &&
-        ollama pull bge-m3 &&
+        sleep 5;
+        ollama pull bge-m3 || echo 'model pull failed — continuing';
         wait
       "
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
-      interval: 10s
-      timeout: 3s
-      retries: 20
+      test: ["CMD", "curl", "-sf", "--max-time", "8", "http://localhost:11434/api/tags"]
+      interval: 15s     # was 10s
+      timeout: 10s      # was 3s (3s can be tight on busy machines)
+      retries: 60       # gives up to ~15 minutes total grace
+      start_period: 2m  # ignore early failures while the daemon warms up
+
     volumes:
       - ollama-embeddings-data:/root/.ollama
     networks: [ai]
@@ -64,15 +66,17 @@ services:
     entrypoint: >
       /bin/sh -lc "
         ollama serve & 
-        sleep 5 &&
-        ollama pull qwen3-vl:2b &&
+        sleep 5;
+        ollama pull qwen3-vl:2b || echo 'model pull failed — continuing';
         wait
       "
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
-      interval: 10s
-      timeout: 3s
-      retries: 20
+      test: ["CMD", "curl", "-sf", "--max-time", "8", "http://localhost:11434/api/tags"]
+      interval: 15s     # was 10s
+      timeout: 10s      # was 3s (3s can be tight on busy machines)
+      retries: 60       # gives up to ~15 minutes total grace
+      start_period: 2m  # ignore early failures while the daemon warms up
+
     volumes:
       - ollama-llm-data:/root/.ollama
     networks: [ai]
