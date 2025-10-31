@@ -1,0 +1,94 @@
+version: "3.8"
+
+services:
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
+    restart: unless-stopped
+    depends_on:
+      ollama-embeddings:
+        condition: service_healthy
+      ollama-llm:
+        condition: service_healthy
+    environment:
+      # Default Ollama endpoint for Open WebUI (LLM instance):
+      - OLLAMA_BASE_URL=http://ollama-llm:11434
+      # Optional: disable auth if you want a single-user setup
+      - WEBUI_AUTH=False
+    ports:
+      - "3000:8080"
+    volumes:
+      - openwebui-data:/app/backend/data
+    networks: [ai]
+
+  # Ollama instance dedicated to embeddings (bge-m3)
+  ollama-embeddings:
+    image: ollama/ollama:latest
+    container_name: ollama-embeddings
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    # Pre-pull the embedding model at startup
+    entrypoint: >
+      /bin/sh -lc "
+        ollama serve & 
+        sleep 5 &&
+        ollama pull bge-m3 &&
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - ollama-embeddings-data:/root/.ollama
+    networks: [ai]
+    # Uncomment to enable NVIDIA GPU for this service (requires NVIDIA Container Toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Ollama instance for LLMs
+  ollama-llm:
+    image: ollama/ollama:latest
+    container_name: ollama-llm
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    # Pre-pull desired LLM at startup
+    entrypoint: >
+      /bin/sh -lc "
+        ollama serve & 
+        sleep 5 &&
+        ollama pull qwen3-vl:2b &&
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - ollama-llm-data:/root/.ollama
+    networks: [ai]
+    # Uncomment to enable NVIDIA GPU
+    deploy:
+      resources:
+        reservations:
+          devices:
+              - driver: nvidia
+                count: all
+                capabilities: [gpu]
+
+networks:
+  ai:
+
+volumes:
+  openwebui-data:
+  ollama-embeddings-data:
+  ollama-llm-data:
