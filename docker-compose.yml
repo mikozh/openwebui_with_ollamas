@@ -37,7 +37,7 @@ services:
         wait
       "
     healthcheck:
-      test: ["CMD", "curl", "-sf", "--max-time", "8", "http://localhost:11434/api/tags"]
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
       interval: 15s     # was 10s
       timeout: 10s      # was 3s (3s can be tight on busy machines)
       retries: 60       # gives up to ~15 minutes total grace
@@ -71,7 +71,7 @@ services:
         wait
       "
     healthcheck:
-      test: ["CMD", "curl", "-sf", "--max-time", "8", "http://localhost:11434/api/tags"]
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
       interval: 15s     # was 10s
       timeout: 10s      # was 3s (3s can be tight on busy machines)
       retries: 60       # gives up to ~15 minutes total grace
